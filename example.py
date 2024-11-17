@@ -5,15 +5,13 @@ api = MyAPIFramework()
 
 @api.route('GET', '/hello')
 def hello(request):
-    request.send_response(200)
-    request.end_headers()
-    request.wfile.write(b"Hello, World!")
+    response = {"message": "Hello, World!"}
+    return response, 200
 
 @api.route('POST', '/submit')
 def submit(request):
-    request.send_response(200)
-    request.end_headers()
-    request.wfile.write(b"Form Submitted")
+    response = {"message": "Form Submitted"}
+    return response, 201
 
 if __name__ == "__main__":
     api.run()
