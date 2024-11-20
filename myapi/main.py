@@ -1,6 +1,5 @@
 import json
 import argparse
-import uvicorn
 from typing import Callable, Dict, Any
 from inspect import iscoroutinefunction
 
