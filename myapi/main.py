@@ -1,66 +1,73 @@
-import http.server
-import socketserver
 import json
 import argparse
-from requesthandler import handle_request
+import uvicorn
+from typing import Callable, Dict, Any
+from inspect import iscoroutinefunction
 
-class MyAPIFramework:
-    def __init__(self, host="127.0.0.1", port=8080):
-        self.host = host
-        self.port = port
+class MiniAPI:
+    def __init__(self):
         self.routes = {}
-        self.middlewares = []
 
-    def route(self, path, methods=['GET']):
-        """ Decorator to register routes and allowed HTTP methods """
-        def decorator(func):
-            self.routes[path] = {"methods": methods, "handler": func}
+    def route(self, path: str, method: str):
+        """
+        Decorator to register a route.
+        """
+        method = method.upper()
+        def decorator(func: Callable):
+            if path not in self.routes:
+                self.routes[path] = {}
+            self.routes[path][method] = func
             return func
         return decorator
 
-    def middleware(self, middleware_func):
-        """ Add middleware for request pre-processing """
-        self.middlewares.append(middleware_func)
+    async def __call__(self, scope: Dict[str, Any], receive: Callable, send: Callable):
+        """
+        ASGI entry point.
+        """
+        if scope["type"] != "http":
+            return
+        
+        path = scope["path"]
+        method = scope["method"]
+        handler = self.routes.get(path, {}).get(method)
 
-    def run(self):
-        """ Start the server """
-        handler = self._create_handler()
-        with socketserver.TCPServer((self.host, self.port), handler) as httpd:
-            print(f"Serving on {self.host}:{self.port}")
-            httpd.serve_forever()
+        if handler is None:
+            await self._send_response(send, 404, {"error": "Not Found"})
+            return
+        
+        # Parse request body for POST
+        body = b""
+        if method == "POST":
+            while True:
+                event = await receive()
+                if event["type"] == "http.request":
+                    body += event.get("body", b"")
+                    if not event.get("more_body", False):
+                        break
 
-    def _create_handler(self):
-        """ Create request handler dynamically """
-        routes = self.routes
-        middlewares = self.middlewares
+        try:
+            if iscoroutinefunction(handler):
+                response = await handler(json.loads(body.decode("utf-8")) if body else None)
+            else:
+                response = handler(json.loads(body.decode("utf-8")) if body else None)
+            await self._send_response(send, 200, response)
+        except Exception as e:
+            await self._send_response(send, 500, {"error": str(e)})
 
-        class RequestHandler(http.server.BaseHTTPRequestHandler):
-            def _send_response(self, response_data, status_code=200, headers=None, cookies=None):
-                """ Sends JSON response """
-                self.send_response(status_code)
+    async def _send_response(self, send: Callable, status: int, body: Any):
+        """
+        Helper to send a response.
+        """
+        body = json.dumps(body).encode("utf-8")
+        await send({
+            "type": "http.response.start",
+            "status": status,
+            "headers": [
+                (b"content-type", b"application/json")
+            ]
+        })
+        await send({
+            "type": "http.response.body",
+            "body": body
+        })
 
-                # Set headers
-                self.send_header('Content-type', 'application/json')
-                if headers:
-                    for header, value in headers.items():
-                        self.send_header(header, value)
-                if cookies:
-                    for cookie, value in cookies.items():
-                        self.send_header('Set-Cookie', f'{cookie}={value}')
-                
-                self.end_headers()
-
-                # Write response data
-                if isinstance(response_data, dict):
-                    response_data = json.dumps(response_data)
-                self.wfile.write(response_data.encode())
-
-           
-
-            def do_GET(self):
-                handle_request(routes)
-
-            def do_POST(self):
-                handle_request(routes)
-
-        return RequestHandler
