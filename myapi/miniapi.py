@@ -3,6 +3,7 @@ import argparse
 import uvicorn
 from typing import Callable, Dict, Any
 from inspect import iscoroutinefunction
+from sendresponse import return_response
 
 
 class MiniAPI:
@@ -61,22 +62,7 @@ class MiniAPI:
         """
         Helper to send a response.
         """
-        body = json.dumps(body).encode("utf-8")
-        await send(
-            {
-                "type": "http.response.start",
-                "status": status,
-                "headers": [
-                    (b"content-type", b"application/json"),
-                ],
-            }
-        )
-        await send(
-            {
-                "type": "http.response.body",
-                "body": body,
-            }
-        )
+        await return_response(send, status, body)
 
     def run(self):
         """
