@@ -1,2 +1,0 @@
-get request
-post request
