@@ -14,6 +14,8 @@ class MiniAPI:
         Decorator to register a route.
         """
         method = method.upper()
+        if method not in {"GET", "POST"}:
+            raise ValueError("Only GET and POST methods are supported.")
 
         def decorator(func: Callable):
             if path not in self.routes:
@@ -35,7 +37,7 @@ class MiniAPI:
         handler = self.routes.get(path, {}).get(method)
 
         if handler is None:
-            await self._send_response(send, 404, {"error": "Not Found"})
+            await return_response(send, 404, {"error": "Not Found"})
             return
 
         # Parse request body for POST
@@ -49,19 +51,14 @@ class MiniAPI:
                         break
 
         try:
-            if iscoroutinefunction(handler):
-                response = await handler(json.loads(body.decode("utf-8")) if body else None)
-            else:
-                response = handler(json.loads(body.decode("utf-8")) if body else None)
-            await self._send_response(send, 200, response)
+            data = json.loads(body.decode("utf-8")) if body else None
+            response = await handler(data) if iscoroutinefunction(handler) else handler(data)
+            await return_response(send, 200, response)
         except Exception as e:
-            await self._send_response(send, 500, {"error": str(e)})
-
-    async def _send_response(self, send: Callable, status: int, body: Any):
-        """
-        Helper to send a response.
-        """
-        await return_response(send, status, body)
+            await return_response(send, 500, {"error": str(e)})
 
     def run(self):
+        """
+        Starts the ASGI server using the run_server helper.
+        """
         run_server(self)
