@@ -1,0 +1,78 @@
+1. Core Functional Requirements
+    Request Handling
+        Support for GET requests to fetch static files or pre-determined responses.
+        Support for POST requests to handle file, folder, and image uploads, with an API endpoint to process the data.
+
+
+    Routing System
+        Support for defining and handling HTTP endpoints like /predict/.
+        Capable of differentiating between GET and POST requests.
+        Ability to parse URL parameters, query strings, and JSON payloads.
+
+
+    File Handling
+        Handle multiple file types: text files, images, videos, and folders (zipped or tarred for folder uploads).
+        Ability to validate uploaded files for security (e.g., file size, format).
+
+
+    Static File Serving
+        Serve static files based on the processed data or AI model output.
+        Allow customizable static file directory configuration.
+        Serve static files (e.g., images, text files) from a directory.
+        Mount a directory (/static) for serving files.
+
+
+    Middleware
+        Enable CORS to allow cross-origin resource sharing for web apps.
+        Support middleware for logging requests and responses.
+
+
+    Response Generation
+        Provide AI model predictions, processed outputs, or summaries based on uploaded files/images.
+        Return responses in JSON.
+
+
+2. Framework Features Inspired by FastAPI
+    Ease of Use
+        Lightweight and minimal boilerplate for defining routes.
+        Clear request and response structure with built-in support for query parameters and body parsing.
+
+
+    Asynchronous Support
+        Allow asynchronous request handling for better performance and scalability.
+
+
+    Interactive API Documentation
+        Auto-generate interactive API documentation (e.g., Swagger UI) for testing endpoints.
+
+
+    Dependency Injection
+        Built-in dependency injection for reusable logic (e.g., authentication, database access).
+
+
+    Validation
+        Input validation for file types, sizes, and folder structures.
+        Error handling with informative responses (e.g., "Invalid file type" or "File too large").
+
+
+6. AI Model Integration
+    Provide hooks for integrating the AI models inference logic.
+    Modular structure to easily plug in different models.
+    Input pre-processing and output post-processing support.
+
+
+
+
+Example API Endpoints
+
+POST /upload-file
+Accepts single or multiple files, processes, and returns a response.
+
+POST /upload-folder
+Accepts a zipped folder, extracts, and processes contents.
+
+GET /static/{filename}
+Retrieves static files stored on the server.
+
+POST /process-image
+Accepts images for model processing and returns predictions.
